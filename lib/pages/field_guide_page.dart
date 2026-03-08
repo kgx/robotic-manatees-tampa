@@ -23,6 +23,86 @@ class FieldGuidePage extends StatelessWidget {
             title: 'FIELD GUIDE',
             subtitle: 'KNOWN ROBOTIC MANATEE DESIGNATIONS',
           ),
+          // Rogue Units Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF0000).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFF4444).withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.dangerous, color: Color(0xFFFF4444), size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        '⚠️ ROGUE UNITS — DO NOT APPROACH',
+                        style: GoogleFonts.orbitron(
+                          fontSize: 14,
+                          color: const Color(0xFFFF4444),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'These units are NOT affiliated with ManaTek and operate outside all protocols.',
+                    style: GoogleFonts.shareTechMono(
+                      fontSize: 11,
+                      color: AppColors.chromeSilver,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: crossAxisCount == 1 ? 1.2 : 0.65,
+              ),
+              itemCount: rogueUnits.length,
+              itemBuilder: (context, index) {
+                final unit = rogueUnits[index];
+                return ClassifiedCard(
+                  accentColor: const Color(0xFFFF4444),
+                  showStamp: true,
+                  child: _buildUnitCard(unit, index, isRogue: true),
+                ).animate().fadeIn(
+                      delay: Duration(milliseconds: 100 * index),
+                      duration: 400.ms,
+                    );
+              },
+            ),
+          ),
+          const SizedBox(height: 32),
+          // Regular units
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: Text(
+              'STANDARD MANATEK UNITS',
+              style: GoogleFonts.orbitron(
+                fontSize: 16,
+                color: AppColors.bioTeal,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: GridView.builder(
@@ -66,7 +146,7 @@ class FieldGuidePage extends StatelessWidget {
     return colors[index % colors.length];
   }
 
-  Widget _buildUnitCard(ManateeUnit unit, int index) {
+  Widget _buildUnitCard(ManateeUnit unit, int index, {bool isRogue = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -75,14 +155,14 @@ class FieldGuidePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: _unitColor(index).withValues(alpha: 0.15),
+                color: (isRogue ? const Color(0xFFFF4444) : _unitColor(index)).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 unit.designation,
                 style: GoogleFonts.shareTechMono(
                   fontSize: 11,
-                  color: _unitColor(index),
+                  color: isRogue ? const Color(0xFFFF4444) : _unitColor(index),
                   fontWeight: FontWeight.w700,
                 ),
               ),

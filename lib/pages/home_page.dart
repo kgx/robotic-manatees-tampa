@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../widgets/animated_waves.dart';
 import '../widgets/news_ticker.dart';
+import '../widgets/george_jet_alert.dart';
 import '../widgets/footer.dart';
 
 class HomePage extends StatelessWidget {
@@ -24,7 +25,14 @@ class HomePage extends StatelessWidget {
             'MANATEK EMBASSY ESTABLISHED ON DAVIS ISLANDS',
             'DJ DUGONG CITED FOR NOISE VIOLATION — REFUSES TO TURN DOWN',
             'POOL NOODLES NOW CLASSIFIED AS STRATEGIC DEFENSE EQUIPMENT',
+            '⚠️ ROGUE UNITS "GEORGE" AND "JET" STILL AT LARGE — EXERCISE CAUTION',
+            'GEORGE EATS ANOTHER BUOY — COAST GUARD ISSUES ADVISORY',
+            'JET DESTROYS PLATT STREET BRIDGE — REPAIR COSTS AT \$2.3M',
+            'MTK-OMEGA DETECTED BENEATH RAYMOND JAMES STADIUM — KAIJU PROTOCOL INITIATED',
+            'MANATEE RUNS FOR CITY COUNCIL — POLLS AT 62%',
+            'CHURCH OF THE PERPETUAL CURRENT GAINS 4,000 FOLLOWERS',
           ]),
+          const GeorgeJetAlert(),
           _buildHeroSection(context, isMobile),
           const AnimatedWaves(height: 80),
           _buildQuickLinks(context, isMobile),
@@ -85,9 +93,22 @@ class HomePage extends StatelessWidget {
               letterSpacing: 4,
             ),
           ).animate().fadeIn(delay: 700.ms, duration: 600.ms),
+          const SizedBox(height: 12),
+          Text(
+            '(EXCEPT GEORGE AND JET)',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.orbitron(
+              fontSize: isMobile ? 10 : 13,
+              fontWeight: FontWeight.w400,
+              color: AppColors.warningOrange,
+              letterSpacing: 3,
+            ),
+          ).animate().fadeIn(delay: 900.ms, duration: 600.ms),
           const SizedBox(height: 32),
           Text(
-            'Tampa Bay is experiencing an unprecedented influx of robotic manatees.\nTheir origin is unknown. Their intentions appear... friendly.\nThis site serves as your official monitoring resource.',
+            'Tampa Bay is experiencing an unprecedented influx of robotic manatees.\n'
+            'Their origin is unknown. Their intentions appear... friendly.\n'
+            'This site serves as your official monitoring resource.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: isMobile ? 14 : 16,
@@ -128,7 +149,7 @@ class HomePage extends StatelessWidget {
 
   Widget _buildQuickLinks(BuildContext context, bool isMobile) {
     final links = [
-      _QuickLink('SIGHTINGS', 'Track confirmed encounters', Icons.location_on, '/sightings'),
+      _QuickLink('SIGHTINGS', '30+ confirmed encounters', Icons.location_on, '/sightings'),
       _QuickLink('FIELD GUIDE', 'Know your manatee models', Icons.menu_book, '/field-guide'),
       _QuickLink('BREAKING NEWS', 'Latest developments', Icons.newspaper, '/news'),
       _QuickLink('CITIZEN DEFENSE', 'Stay prepared', Icons.shield, '/defense'),
@@ -174,10 +195,12 @@ class HomePage extends StatelessWidget {
             runSpacing: 24,
             alignment: WrapAlignment.center,
             children: [
-              _StatusItem(label: 'CONFIRMED UNITS', value: '23', color: AppColors.bioTeal),
+              _StatusItem(label: 'CONFIRMED UNITS', value: '247', color: AppColors.bioTeal),
               _StatusItem(label: 'THREAT LEVEL', value: 'VIBES', color: AppColors.seaFoam),
-              _StatusItem(label: 'INCIDENTS TODAY', value: '4', color: AppColors.warningOrange),
-              _StatusItem(label: 'MOOD', value: 'CHILL', color: AppColors.bioTeal),
+              _StatusItem(label: 'ROGUE UNITS', value: '2', color: const Color(0xFFFF4444)),
+              _StatusItem(label: 'INCIDENTS TODAY', value: '14', color: AppColors.warningOrange),
+              _StatusItem(label: 'BRIDGES DESTROYED', value: '1', color: const Color(0xFFFF4444)),
+              _StatusItem(label: 'MOOD', value: 'CHAOS', color: AppColors.bioTeal),
             ],
           ),
         ],

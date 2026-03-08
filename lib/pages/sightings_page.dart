@@ -3,16 +3,50 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../data/sightings_data.dart';
+import '../services/location_service.dart';
 import '../widgets/classified_card.dart';
 import '../widgets/section_header.dart';
 import '../widgets/footer.dart';
 
-class SightingsPage extends StatelessWidget {
+class SightingsPage extends StatefulWidget {
   const SightingsPage({super.key});
+
+  @override
+  State<SightingsPage> createState() => _SightingsPageState();
+}
+
+class _SightingsPageState extends State<SightingsPage> {
+  List<Sighting> _localSightings = [];
+  bool _loadingLocation = true;
+  String? _locationName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    try {
+      final loc = await getUserLocation();
+      if (loc != null && mounted) {
+        setState(() {
+          _localSightings = generateLocalSightings(loc.lat, loc.lng, loc.areaName);
+          _locationName = loc.areaName;
+          _loadingLocation = false;
+        });
+      } else if (mounted) {
+        setState(() => _loadingLocation = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingLocation = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
+    final allSightings = [..._localSightings, ...georgeAndJetSightings, ...tampaSightings];
 
     return SingleChildScrollView(
       child: Column(
@@ -20,15 +54,151 @@ class SightingsPage extends StatelessWidget {
         children: [
           const SectionHeader(
             title: 'SIGHTING TRACKER',
-            subtitle: 'CONFIRMED ENCOUNTERS — TAMPA BAY REGION',
+            subtitle: 'CONFIRMED ENCOUNTERS — ALL REGIONS',
           ),
-          // Tampa Bay map placeholder
           _buildMapSection(isMobile),
+          const SizedBox(height: 24),
+
+          // Location status
+          if (_loadingLocation)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.bioTeal.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.bioTeal.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bioTeal),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'ACQUIRING YOUR POSITION FOR LOCAL THREAT ASSESSMENT...',
+                      style: GoogleFonts.shareTechMono(
+                        fontSize: 12, color: AppColors.bioTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (_localSightings.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0000).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFF0000).withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.my_location, color: Color(0xFFFF4444), size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '⚠️ PROXIMITY ALERT: MANATEE ACTIVITY DETECTED NEAR YOUR LOCATION',
+                        style: GoogleFonts.orbitron(
+                          fontSize: 11,
+                          color: const Color(0xFFFF4444),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate()
+                  .fadeIn(duration: 400.ms)
+                  .shimmer(duration: 2000.ms, color: const Color(0xFFFF0000).withValues(alpha: 0.1)),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                '📍 NEAR YOUR LOCATION',
+                style: GoogleFonts.orbitron(
+                  fontSize: 16,
+                  color: const Color(0xFFFF4444),
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ..._localSightings.asMap().entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: ClassifiedCard(
+                  showStamp: true,
+                  accentColor: const Color(0xFFFF4444),
+                  child: _buildSightingContent(entry.value, isLocal: true),
+                ).animate().fadeIn(
+                      delay: Duration(milliseconds: 100 * entry.key),
+                      duration: 400.ms,
+                    ),
+              );
+            }),
+            const SizedBox(height: 24),
+          ],
+
+          // George and Jet section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF0000).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warningOrange.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.dangerous, color: Color(0xFFFF4444), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'ROGUE UNIT ACTIVITY — GEORGE & JET',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 12,
+                        color: const Color(0xFFFF4444),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...georgeAndJetSightings.asMap().entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: ClassifiedCard(
+                showStamp: true,
+                accentColor: const Color(0xFFFF4444),
+                child: _buildSightingContent(entry.value, isRogue: true),
+              ).animate().fadeIn(
+                    delay: Duration(milliseconds: 80 * entry.key),
+                    duration: 400.ms,
+                  ),
+            );
+          }),
           const SizedBox(height: 32),
+
+          // Regular sightings
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
-              'INCIDENT REPORTS',
+              'ALL INCIDENT REPORTS',
               style: GoogleFonts.orbitron(
                 fontSize: 16,
                 color: AppColors.bioTeal,
@@ -37,14 +207,14 @@ class SightingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ...sightings.asMap().entries.map((entry) {
+          ...tampaSightings.asMap().entries.map((entry) {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: ClassifiedCard(
                 showStamp: true,
                 child: _buildSightingContent(entry.value),
               ).animate().fadeIn(
-                    delay: Duration(milliseconds: 100 * entry.key),
+                    delay: Duration(milliseconds: 60 * entry.key),
                     duration: 400.ms,
                   ),
             );
@@ -67,15 +237,12 @@ class SightingsPage extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Grid lines for tactical feel
           CustomPaint(
             size: const Size(double.infinity, 300),
             painter: _GridPainter(),
           ),
-          // Sighting markers
-          ...sightings.asMap().entries.map((entry) {
-            // Map coords to relative positions within the container
-            final xFrac = ((entry.value.lng + 82.60) / 0.20).clamp(0.05, 0.95);
+          ...tampaSightings.asMap().entries.map((entry) {
+            final xFrac = ((entry.value.lng + 82.60) / 0.25).clamp(0.05, 0.95);
             final yFrac = ((entry.value.lat - 27.82) / 0.20).clamp(0.05, 0.95);
             return Positioned(
               left: xFrac * 100,
@@ -83,7 +250,16 @@ class SightingsPage extends StatelessWidget {
               child: _SonarPing(label: entry.value.id),
             );
           }),
-          // Label
+          // George & Jet markers (red)
+          ...georgeAndJetSightings.asMap().entries.map((entry) {
+            final xFrac = ((entry.value.lng + 82.60) / 0.25).clamp(0.05, 0.95);
+            final yFrac = ((entry.value.lat - 27.82) / 0.20).clamp(0.05, 0.95);
+            return Positioned(
+              left: xFrac * 100,
+              top: (1 - yFrac) * 250 + 10,
+              child: _SonarPing(label: entry.value.id, color: const Color(0xFFFF4444)),
+            );
+          }),
           Positioned(
             bottom: 12,
             right: 12,
@@ -106,10 +282,29 @@ class SightingsPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                'LIVE MONITORING',
+                'LIVE MONITORING — ${tampaSightings.length + georgeAndJetSightings.length} CONTACTS',
                 style: GoogleFonts.shareTechMono(
                   fontSize: 10,
                   color: AppColors.bioTeal,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF4444).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '🔴 ${georgeAndJetSightings.length} ROGUE',
+                style: GoogleFonts.shareTechMono(
+                  fontSize: 10,
+                  color: const Color(0xFFFF4444),
                   letterSpacing: 2,
                 ),
               ),
@@ -120,7 +315,9 @@ class SightingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSightingContent(Sighting sighting) {
+  Widget _buildSightingContent(Sighting sighting, {bool isLocal = false, bool isRogue = false}) {
+    final accentColor = isLocal || isRogue ? const Color(0xFFFF4444) : AppColors.bioTeal;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -129,18 +326,54 @@ class SightingsPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.bioTeal.withValues(alpha: 0.15),
+                color: accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 sighting.id,
                 style: GoogleFonts.shareTechMono(
                   fontSize: 12,
-                  color: AppColors.bioTeal,
+                  color: accentColor,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
+            if (isLocal) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0000).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '📍 NEAR YOU',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 9,
+                    color: const Color(0xFFFF4444),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+            if (isRogue) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0000).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '⚠️ ROGUE',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 9,
+                    color: const Color(0xFFFF4444),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -158,7 +391,7 @@ class SightingsPage extends StatelessWidget {
           sighting.title,
           style: GoogleFonts.orbitron(
             fontSize: 16,
-            color: Colors.white,
+            color: isRogue ? const Color(0xFFFF4444) : Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -167,7 +400,7 @@ class SightingsPage extends StatelessWidget {
           sighting.location,
           style: GoogleFonts.shareTechMono(
             fontSize: 12,
-            color: AppColors.bioTeal,
+            color: accentColor,
           ),
         ),
         const SizedBox(height: 12),
@@ -183,14 +416,16 @@ class SightingsPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.warningOrange.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: (isRogue ? const Color(0xFFFF4444) : AppColors.warningOrange).withValues(alpha: 0.5),
+            ),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
             'THREAT: ${sighting.threatLevel}',
             style: GoogleFonts.shareTechMono(
               fontSize: 11,
-              color: AppColors.warningOrange,
+              color: isRogue ? const Color(0xFFFF4444) : AppColors.warningOrange,
               letterSpacing: 1,
             ),
           ),
@@ -221,7 +456,8 @@ class _GridPainter extends CustomPainter {
 
 class _SonarPing extends StatefulWidget {
   final String label;
-  const _SonarPing({required this.label});
+  final Color color;
+  const _SonarPing({required this.label, this.color = AppColors.bioTeal});
 
   @override
   State<_SonarPing> createState() => _SonarPingState();
@@ -262,7 +498,7 @@ class _SonarPingState extends State<_SonarPing> with SingleTickerProviderStateMi
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.bioTeal.withValues(alpha: 1 - _controller.value),
+                    color: widget.color.withValues(alpha: 1 - _controller.value),
                     width: 1,
                   ),
                 ),
@@ -272,11 +508,11 @@ class _SonarPingState extends State<_SonarPing> with SingleTickerProviderStateMi
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.bioTeal,
+              color: widget.color,
               boxShadow: [
-                BoxShadow(color: AppColors.bioTeal, blurRadius: 6, spreadRadius: 1),
+                BoxShadow(color: widget.color, blurRadius: 6, spreadRadius: 1),
               ],
             ),
           ),
@@ -286,7 +522,7 @@ class _SonarPingState extends State<_SonarPing> with SingleTickerProviderStateMi
               widget.label,
               style: GoogleFonts.shareTechMono(
                 fontSize: 8,
-                color: AppColors.bioTeal,
+                color: widget.color,
               ),
             ),
           ),
