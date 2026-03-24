@@ -129,70 +129,57 @@ class _TampaBayMapState extends State<TampaBayMap>
 }
 
 // ---------------------------------------------------------------------------
-// Coordinate mapper -- Mercator projection with proper aspect ratio.
-// The map is fit inside the widget with uniform scaling and centered.
+// Coordinate mapper -- equirectangular projection with cos(lat) correction.
+// Uniform scaling preserves geographic proportions on any aspect ratio.
 // ---------------------------------------------------------------------------
 class _CoordMapper {
-  // Geographic bounds of the map region
   static const double north = 28.15;
   static const double south = 27.30;
   static const double west = -82.85;
   static const double east = -82.20;
 
-  // Precomputed Mercator-projected bounds and scale
+  // cos(centerLat) corrects longitude degrees to match latitude degrees
+  static final double _cosLat = cos((north + south) / 2 * pi / 180);
+
+  // Projected dimensions in consistent units (degrees-of-latitude equivalent)
+  static final double _projW = (east - west) * _cosLat; // ~0.575
+  static final double _projH = north - south;            // 0.85
+
   final double _scale;
   final double _offsetX;
   final double _offsetY;
-  final double _mercNorth;
-  final double _mercSouth;
   final Size size;
 
-  static const double _padding = 16.0;
+  static const double _padding = 20.0;
 
   _CoordMapper(this.size)
-      : _mercNorth = _mercatorY(north),
-        _mercSouth = _mercatorY(south),
-        _scale = _computeScale(size),
+      : _scale = _computeScale(size),
         _offsetX = _computeOffsetX(size),
         _offsetY = _computeOffsetY(size);
-
-  static double _mercatorY(double lat) {
-    final latRad = lat * pi / 180;
-    return log(tan(pi / 4 + latRad / 2));
-  }
 
   static double _computeScale(Size size) {
     final usableW = size.width - _padding * 2;
     final usableH = size.height - _padding * 2;
-    final geoWidth = east - west; // in degrees longitude
-    final mercH = _mercatorY(north) - _mercatorY(south);
-    // At the center latitude, 1° longitude ≈ cos(lat) * 1° latitude in Mercator
-    // But Mercator already handles this — we just need uniform scaling
-    final scaleX = usableW / geoWidth;
-    final scaleY = usableH / mercH;
-    return min(scaleX, scaleY);
+    return min(usableW / _projW, usableH / _projH);
   }
 
   static double _computeOffsetX(Size size) {
     final usableW = size.width - _padding * 2;
-    final geoWidth = east - west;
     final scale = _computeScale(size);
-    final mapW = geoWidth * scale;
+    final mapW = _projW * scale;
     return _padding + (usableW - mapW) / 2;
   }
 
   static double _computeOffsetY(Size size) {
     final usableH = size.height - _padding * 2;
-    final mercH = _mercatorY(north) - _mercatorY(south);
     final scale = _computeScale(size);
-    final mapH = mercH * scale;
+    final mapH = _projH * scale;
     return _padding + (usableH - mapH) / 2;
   }
 
   Offset latLngToPixel(double lat, double lng) {
-    final x = _offsetX + (lng - west) * _scale;
-    final mercY = _mercatorY(lat);
-    final y = _offsetY + (_mercNorth - mercY) * _scale;
+    final x = _offsetX + (lng - west) * _cosLat * _scale;
+    final y = _offsetY + (north - lat) * _scale;
     return Offset(x, y);
   }
 
